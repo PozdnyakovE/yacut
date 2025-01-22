@@ -1,17 +1,12 @@
-from random import choice
-import re
+from re import match
 
-from flask import abort, flash, redirect, render_template
+from flask import flash, redirect, render_template
 
 from . import app, db
 from .forms import YaCutForm
 from .models import URLMap
-from settings import (ALLOWED_SYMBOLS_FOR_CUSTOM_ID, HOST_ADDRESS,
-                      URL_PATTERN)
-
-
-def get_unique_short_id():
-    return ''.join(choice(ALLOWED_SYMBOLS_FOR_CUSTOM_ID) for _ in range(6))
+from .utils import get_unique_short_id
+from settings import HOST_ADDRESS, URL_PATTERN
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -27,7 +22,7 @@ def get_short_url():
                 'bad_input'
             )
             return render_template('main_page.html', form=form)
-        if re.match(URL_PATTERN, form.original_link.data) is None:
+        if match(URL_PATTERN, form.original_link.data) is None:
             flash(
                 'Оригинальная ссылка содержит ошибку.',
                 'bad_input'
@@ -45,7 +40,5 @@ def get_short_url():
 
 @app.route('/<short>')
 def redirect_to_original_link(short):
-    link = URLMap.query.filter_by(short=short).first()
-    if link is None:
-        abort(404)
+    link = URLMap.query.filter_by(short=short).first_or_404()
     return redirect(link.original)
